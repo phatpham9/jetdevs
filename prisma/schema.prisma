@@ -7,7 +7,10 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id      Int    @id @default(autoincrement())
-  content String
+model Article {
+  id           Int      @id @default(autoincrement())
+  nickname     String
+  title        String
+  content      String   @db.Text
+  creationDate DateTime @default(now())
 }
