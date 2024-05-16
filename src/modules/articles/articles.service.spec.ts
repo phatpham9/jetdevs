@@ -323,28 +323,13 @@ describe('ArticlesService', () => {
       ];
       const expected = [
         {
-          id: 1,
-          nickname: 'Nickname',
-          content: 'Content',
-          creationDate: new Date(),
-          articleId: 1,
-          parentId: null,
+          ...comments[0],
           comments: [
             {
-              id: 2,
-              nickname: 'Nickname',
-              content: 'Content',
-              creationDate: new Date(),
-              articleId: 1,
-              parentId: 1,
+              ...comments[1],
               comments: [
                 {
-                  id: 3,
-                  nickname: 'Nickname',
-                  content: 'Content',
-                  creationDate: new Date(),
-                  articleId: 1,
-                  parentId: 2,
+                  ...comments[2],
                   comments: [],
                 },
               ],
