@@ -21,8 +21,11 @@ import {
 import { Error } from '../../error/entities/error.entity';
 
 import { Article, ArticleWithoutContent } from './entities/article.entity';
+import { ArticleComment } from './entities/article-comment.entity';
 import { CreateArticleDto } from './dtos/create-article.dto';
+import { CreateArticleCommentDto } from './dtos/create-article-comment.dto';
 import { GetAllArticlesQuery } from './dtos/get-all-articles.query';
+import { GetAllArticleCommentsQuery } from './dtos/get-all-article-comments.query';
 import { GetArticleParams } from './dtos/get-article.params';
 import { ArticlesService } from './articles.service';
 
@@ -38,7 +41,7 @@ export class ArticlesController {
   })
   @HttpCode(HttpStatus.CREATED)
   @ApiCreatedResponse({
-    description: 'Created article successfully',
+    description: 'Create article successfully',
     type: Article,
   })
   @ApiBadRequestResponse({
@@ -73,9 +76,9 @@ export class ArticlesController {
     type: Error,
   })
   async getAll(
-    @Query() { offset, limit }: GetAllArticlesQuery,
+    @Query() getAllArticlesQuery: GetAllArticlesQuery,
   ): Promise<ArticleWithoutContent[]> {
-    return this.articlesService.getAll({ offset, limit });
+    return this.articlesService.getAll(getAllArticlesQuery);
   }
 
   @Get(':id')
@@ -128,5 +131,64 @@ export class ArticlesController {
   })
   async getContent(@Param() { id }: GetArticleParams): Promise<string> {
     return this.articlesService.getContent(id);
+  }
+
+  @Post(':id/comments')
+  @ApiOperation({
+    operationId: 'createArticleComment',
+    description: 'Create an article comment',
+  })
+  @HttpCode(HttpStatus.CREATED)
+  @ApiCreatedResponse({
+    description: 'Create article comment successfully',
+    type: ArticleComment,
+  })
+  @ApiBadRequestResponse({
+    description: 'Validation error',
+    type: Error,
+  })
+  @ApiNotFoundResponse({
+    description: 'Article not found',
+    type: Error,
+  })
+  @ApiInternalServerErrorResponse({
+    description: 'Internal server error',
+    type: Error,
+  })
+  async createComment(
+    @Param() { id }: GetArticleParams,
+    @Body() createArticleCommentDto: CreateArticleCommentDto,
+  ): Promise<ArticleComment> {
+    return this.articlesService.createComment(id, createArticleCommentDto);
+  }
+
+  @Get(':id/comments')
+  @ApiOperation({
+    operationId: 'getAllArticleComments',
+    description: 'Get all article comments',
+  })
+  @HttpCode(HttpStatus.OK)
+  @ApiOkResponse({
+    description: 'Get all article comments successfully',
+    type: ArticleComment,
+    isArray: true,
+  })
+  @ApiBadRequestResponse({
+    description: 'Validation error',
+    type: Error,
+  })
+  @ApiNotFoundResponse({
+    description: 'Article not found',
+    type: Error,
+  })
+  @ApiInternalServerErrorResponse({
+    description: 'Internal server error',
+    type: Error,
+  })
+  async getAllComments(
+    @Param() { id }: GetArticleParams,
+    @Query() getAllArticleCommentsQuery: GetAllArticleCommentsQuery,
+  ): Promise<ArticleComment[]> {
+    return this.articlesService.getAllComments(id, getAllArticleCommentsQuery);
   }
 }
