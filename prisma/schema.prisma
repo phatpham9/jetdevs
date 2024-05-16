@@ -8,9 +8,22 @@ datasource db {
 }
 
 model Article {
-  id           Int      @id @default(autoincrement())
+  id           Int       @id @default(autoincrement())
   nickname     String
   title        String
-  content      String   @db.Text
-  creationDate DateTime @default(now())
+  content      String    @db.Text
+  creationDate DateTime  @default(now())
+  comments     Comment[]
+}
+
+model Comment {
+  id           Int       @id @default(autoincrement())
+  nickname     String
+  content      String    @db.Text
+  creationDate DateTime  @default(now())
+  articleId    Int
+  article      Article   @relation(fields: [articleId], references: [id])
+  parentId     Int?
+  parent       Comment?  @relation("CommentToComment", fields: [parentId], references: [id])
+  comments     Comment[] @relation("CommentToComment")
 }

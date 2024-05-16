@@ -2,20 +2,23 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { Article } from '@prisma/client';
 
 import { PrismaService } from '../common/prisma/prisma.service';
+import { CommentsService } from '../comments/comments.service';
 
 import { ArticlesService } from './articles.service';
 
 describe('ArticlesService', () => {
   let service: ArticlesService;
   let prismaService: PrismaService;
+  let commentsService: CommentsService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [PrismaService, ArticlesService],
+      providers: [PrismaService, ArticlesService, CommentsService],
     }).compile();
 
     service = module.get<ArticlesService>(ArticlesService);
     prismaService = module.get<PrismaService>(PrismaService);
+    commentsService = module.get<CommentsService>(CommentsService);
   });
 
   describe('create', () => {
@@ -159,6 +162,198 @@ describe('ArticlesService', () => {
       jest.spyOn(prismaService.article, 'findUnique').mockResolvedValue(null);
 
       await expect(service.getContent(1)).rejects.toThrow('Article not found');
+    });
+  });
+
+  describe('createComment', () => {
+    const article = {
+      id: 1,
+      nickname: 'Nickname',
+      title: 'Title',
+      content: 'Content',
+      creationDate: new Date(),
+    };
+    const comment = {
+      id: 1,
+      nickname: 'Nickname',
+      content: 'Content',
+      creationDate: new Date(),
+      articleId: article.id,
+      parentId: 1,
+    };
+    const createArticleCommentDto = {
+      nickname: 'Nickname',
+      content: 'Content',
+      parentId: 1,
+    };
+
+    it('should create an article comment', async () => {
+      jest
+        .spyOn(prismaService.article, 'findUnique')
+        .mockResolvedValue(article);
+      jest.spyOn(commentsService, 'create').mockResolvedValue(comment);
+
+      await expect(
+        service.createComment(article.id, createArticleCommentDto),
+      ).resolves.toBe(comment);
+      expect(prismaService.article.findUnique).toHaveBeenCalledWith({
+        where: { id: article.id },
+      });
+      expect(commentsService.create).toHaveBeenCalledWith({
+        articleId: article.id,
+        ...createArticleCommentDto,
+      });
+    });
+
+    it('should throw NotFoundException when article not found', async () => {
+      jest.spyOn(prismaService.article, 'findUnique').mockResolvedValue(null);
+
+      await expect(service.getContent(1)).rejects.toThrow('Article not found');
+    });
+  });
+
+  describe('getAllComments', () => {
+    const article = {
+      id: 1,
+      nickname: 'Nickname',
+      title: 'Title',
+      content: 'Content',
+      creationDate: new Date(),
+    };
+    const comments = [
+      {
+        id: 1,
+        nickname: 'Nickname',
+        content: 'Content',
+        creationDate: new Date(),
+        articleId: article.id,
+        parentId: 1,
+        comments: [],
+      },
+    ];
+
+    beforeEach(() => {
+      jest.spyOn(commentsService, 'getAll').mockResolvedValue(comments);
+      jest.spyOn(service as any, 'buildCommentTree').mockReturnValue(comments);
+    });
+
+    it('should get all article comments with treeView is true', async () => {
+      jest
+        .spyOn(prismaService.article, 'findUnique')
+        .mockResolvedValue(article);
+
+      await expect(
+        service.getAllComments(article.id, { treeView: true }),
+      ).resolves.toBe(comments);
+      expect(prismaService.article.findUnique).toHaveBeenCalledWith({
+        where: { id: article.id },
+      });
+      expect(commentsService.getAll).toHaveBeenCalledWith({
+        articleId: article.id,
+      });
+      expect(service['buildCommentTree']).toHaveBeenCalledWith(comments);
+    });
+
+    it('should get all article comments with treeView is null', async () => {
+      jest
+        .spyOn(prismaService.article, 'findUnique')
+        .mockResolvedValue(article);
+
+      await expect(service.getAllComments(article.id, {})).resolves.toBe(
+        comments,
+      );
+      expect(prismaService.article.findUnique).toHaveBeenCalledWith({
+        where: { id: article.id },
+      });
+      expect(commentsService.getAll).toHaveBeenCalledWith({
+        articleId: article.id,
+      });
+      expect(service['buildCommentTree']).not.toHaveBeenCalled();
+    });
+
+    it('should get all article comments with GetAllArticleCommentsQuery is null', async () => {
+      jest
+        .spyOn(prismaService.article, 'findUnique')
+        .mockResolvedValue(article);
+
+      await expect(service.getAllComments(article.id)).resolves.toBe(comments);
+      expect(prismaService.article.findUnique).toHaveBeenCalledWith({
+        where: { id: article.id },
+      });
+      expect(commentsService.getAll).toHaveBeenCalledWith({
+        articleId: article.id,
+      });
+      expect(service['buildCommentTree']).not.toHaveBeenCalled();
+    });
+
+    it('should throw NotFoundException when article not found', async () => {
+      jest.spyOn(prismaService.article, 'findUnique').mockResolvedValue(null);
+
+      await expect(service.getContent(1)).rejects.toThrow('Article not found');
+    });
+  });
+
+  describe('buildCommentTree', () => {
+    it('should build comment tree', () => {
+      const comments = [
+        {
+          id: 1,
+          nickname: 'Nickname',
+          content: 'Content',
+          creationDate: new Date(),
+          articleId: 1,
+          parentId: null,
+        },
+        {
+          id: 2,
+          nickname: 'Nickname',
+          content: 'Content',
+          creationDate: new Date(),
+          articleId: 1,
+          parentId: 1,
+        },
+        {
+          id: 3,
+          nickname: 'Nickname',
+          content: 'Content',
+          creationDate: new Date(),
+          articleId: 1,
+          parentId: 2,
+        },
+      ];
+      const expected = [
+        {
+          id: 1,
+          nickname: 'Nickname',
+          content: 'Content',
+          creationDate: new Date(),
+          articleId: 1,
+          parentId: null,
+          comments: [
+            {
+              id: 2,
+              nickname: 'Nickname',
+              content: 'Content',
+              creationDate: new Date(),
+              articleId: 1,
+              parentId: 1,
+              comments: [
+                {
+                  id: 3,
+                  nickname: 'Nickname',
+                  content: 'Content',
+                  creationDate: new Date(),
+                  articleId: 1,
+                  parentId: 2,
+                  comments: [],
+                },
+              ],
+            },
+          ],
+        },
+      ];
+
+      expect(service['buildCommentTree'](comments)).toEqual(expected);
     });
   });
 });

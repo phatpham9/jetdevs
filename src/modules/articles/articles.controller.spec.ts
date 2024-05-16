@@ -18,6 +18,8 @@ describe('ArticlesController', () => {
             getAll: jest.fn(),
             get: jest.fn(),
             getContent: jest.fn(),
+            createComment: jest.fn(),
+            getAllComments: jest.fn(),
           },
         },
       ],
@@ -94,6 +96,63 @@ describe('ArticlesController', () => {
 
       await expect(controller.getContent({ id: 1 })).resolves.toBe(content);
       expect(service.getContent).toHaveBeenCalledWith(1);
+    });
+  });
+
+  describe('createComment', () => {
+    it('should create an article comment', async () => {
+      const articleId = 1;
+      const parentId = 1;
+      const comment = {
+        id: 1,
+        nickname: 'Nickname',
+        content: 'Content',
+        creationDate: new Date(),
+        articleId,
+        parentId,
+      };
+      jest.spyOn(service, 'createComment').mockResolvedValue(comment);
+
+      await expect(
+        controller.createComment(
+          { id: articleId },
+          {
+            nickname: 'Nickname',
+            content: 'Content',
+            parentId,
+          },
+        ),
+      ).resolves.toBe(comment);
+      expect(service.createComment).toHaveBeenCalledWith(articleId, {
+        nickname: 'Nickname',
+        content: 'Content',
+        parentId,
+      });
+    });
+  });
+
+  describe('getAllComments', () => {
+    it('should get all article comments', async () => {
+      const articleId = 1;
+      const parentId = 1;
+      const comments = [
+        {
+          id: 1,
+          nickname: 'Nickname',
+          content: 'Content',
+          creationDate: new Date(),
+          articleId,
+          parentId,
+        },
+      ];
+      jest.spyOn(service, 'getAllComments').mockResolvedValue(comments);
+
+      await expect(
+        controller.getAllComments({ id: articleId }, { treeView: true }),
+      ).resolves.toBe(comments);
+      expect(service.getAllComments).toHaveBeenCalledWith(articleId, {
+        treeView: true,
+      });
     });
   });
 });
